@@ -1,0 +1,573 @@
+import React, { useEffect, useState, useRef } from 'react'
+import View from './View';
+import '../App.css';
+import { useCallback, useContext } from 'react';
+
+function Crud() {
+
+  
+
+  let usersHobby = [
+    {
+      "id": 1,
+      "value": "Reading",
+      "elemId": "checkReading",
+      "isChecked": false,
+    },
+    {
+      "id": 2,
+      "value": "Writting",
+      "elemId": "checkWritting",
+      "isChecked": false,
+    },
+    {
+      "id": 3,
+      "value": "Gaming",
+      "elemId": "checkGaming",
+      "isChecked": false,
+    },
+    {
+      "id": 4,
+      "value": "Travelling",
+      "elemId": "checkTraveling",
+      "isChecked": false,
+    },
+  ]
+
+  let genderArray = [
+    {
+      value: "Male",
+      isChecked: false
+    },
+    {
+      value: "Female",
+      isChecked: false
+    }
+  ]
+
+  // Refs
+  let countryRef = useRef();
+  let stateRef = useRef();
+  let cityRef = useRef();
+  let resetRef = useRef();
+
+  const [userData, setUserData] = useState({
+    fname: '',
+    lname: '',
+    email: '',
+    mobile: '',
+    gender: '',
+    hobby: [],
+    country: 'none',
+    state: 'none',
+    city: 'none',
+    isChecked: false
+  });
+  const [allData, setAllData] = useState([])
+  const [isSubmit, setIsSubmit] = useState(true)
+  const [idToUpdate, setIdToUpdate] = useState('')
+  const [hobbiesArray, setHobbiesArray] = useState(usersHobby)
+  const [genderArr, setGenderArray] = useState(genderArray)
+  const [DummyHobby, setDummyHobby] = useState([])
+
+
+
+  let jsonData = `{
+    "country":[
+        {"name":"India"},
+        {"name":"US"},
+        {"name":"Australia"}
+    ],
+    "state":[
+        {"country":"India","state":"Gujarat"},
+        {"country":"India","state":"Rajasthan"},
+        {"country":"US","state":"Texas"},
+        {"country":"US","state":"Florida"},
+        {"country":"Australia","state":"Victoria"},
+        {"country":"Australia","state":"Queensland"}
+    ],
+    "city":[
+        {"state":"Gujarat","city":"Surat"},
+        {"state":"Gujarat","city":"Bharuch"},
+        {"state":"Rajasthan","city":"Jaipur"},
+        {"state":"Rajasthan","city":"Udaipur"},
+        {"state":"Texas","city":"Houston"},
+        {"state":"Texas","city":"Austin"},
+        {"state":"Florida","city":"Miami"},
+        {"state":"Florida","city":"Destin"},
+        {"state":"Victoria","city":"Melbourne"},
+        {"state":"Victoria","city":"Geelong"},
+        {"state":"Queensland","city":"Brisbane"},
+        {"state":"Queensland","city":"Mackay"}
+    ]
+}`;
+
+  let data = JSON.parse(jsonData);
+
+  useEffect(() => {
+    let html = "";
+    data.country.map((country) => {
+      return html += `<option value='${country.name}'>${country.name}</option>`;
+    })
+    countryRef.current.innerHTML += html;
+  }, [])
+
+  useEffect(()=>{
+    let localData = localStorage.getItem('data');
+    if(localData!==null){
+      setAllData(JSON.parse(localData));
+    }
+    else{
+      setAllData([]);
+    }
+  },[])
+  
+
+
+  const handleCountryChange = (e)=> {
+    let elemValue = e;
+    setUserData({
+      ...userData,
+      country: elemValue
+    })
+    stateRef.current.innerHTML = "<option value='none'>Select your state</option>";
+    cityRef.current.innerHTML = "<option value='none'>Select your city</option>";
+    let html = "";
+    if (userData.country) {
+      let states = data.state.filter((states) => {
+        return states.country === elemValue
+      })
+      states.map(({ state }) => {
+        return html += `<option value=${state}>${state}</option>`
+      })
+      stateRef.current.innerHTML += html;
+    }
+  }
+
+
+  const handleStateChange = (e)=> {
+    setUserData({ ...userData, state: e });
+
+    cityRef.current.innerHTML = "<option value='none'>Select your city</option>";
+    let html = "";
+    if (userData.city) {
+      let cities = data.city.filter((city) => {
+        return city.state === e;
+      })
+      cities.map(({ city }) => {
+        return html += `<option value=${city}>${city}</option>`;
+      })
+      cityRef.current.innerHTML += html;
+    }
+  }
+
+  const handleCityChange = (e)=> {
+    setUserData({ ...userData, city: e.target.value });
+  }
+
+
+
+  // Event to change gender state
+  const handleGenderChange = (e)=> {
+    let { value, checked } = e.target;
+    let tempArr = genderArray.map((gender) => {
+      return gender.value === value ? { ...gender, isChecked: checked } : gender;
+    })
+    setGenderArray(tempArr);
+    genderArr.map((gender) =>
+      gender.value === value ? setUserData({ ...userData, gender: value }) : ''
+    )
+  }
+
+
+  // Handle CheckedChange event
+  const handleHobbyChange = (e)=> {
+    let { checked, value } = e.target;
+
+    let tempArr = hobbiesArray;
+    let newArr = tempArr.map((hobby) => {
+      return hobby.value == value ? { ...hobby, isChecked: checked } : hobby;
+    })
+    setHobbiesArray(newArr);
+    if (!isSubmit) {
+      let arr = [];
+      hobbiesArray.map((hobby) => {
+        if (hobby.isChecked === true) {
+          arr.push(hobby.value);
+        }
+      })
+      if (checked) {
+        arr.push(value);
+      }
+      else {
+        let newArr = arr.filter((hobby) => {
+          return hobby !== value;
+        })
+        arr = newArr;
+      }
+      setDummyHobby(arr);
+    }
+
+    else {
+      if (checked) {
+        let arr = userData.hobby;
+        arr.push(value);
+        setUserData({ ...userData, hobby: arr });
+      }
+      else {
+        let arr = userData.hobby;
+        let newArr = arr.filter((hobby) => {
+          return hobby !== value;
+        })
+        setUserData({ ...userData, hobby: newArr });
+      }
+    }
+
+  }
+
+
+
+
+  // Handle submit even which occured when user click on submit button. i can be submit type or update based on condition.
+  const handleSubmit = useCallback((e)=> {
+    e.preventDefault();
+
+    let objData = {
+      fname: userData.fname,
+      lname: userData.lname,
+      email: userData.email,
+      mobile: userData.mobile,
+      gender: userData.gender,
+      country: userData.country,
+      state: userData.state,
+      city: userData.city,
+      isChecked: userData.isChecked
+    }
+
+    // If button is submit and wanted to add new record
+    if (isSubmit) {
+      objData.hobby = userData.hobby;
+      let id = 1;
+      let returnedId = setId(id);
+      objData.id = returnedId;
+      let localData = JSON.parse(localStorage.getItem('data'))
+      if(localData!==null){
+        localData.push(objData);
+        localStorage.setItem('data',JSON.stringify(localData));
+        setAllData(JSON.parse(localStorage.getItem('data')))
+      }
+      else{
+        let newArr = [];
+        newArr.push(objData);
+        localStorage.setItem('data', JSON.stringify(newArr));
+        setAllData(JSON.parse(localStorage.getItem('data')));
+      }
+    }
+
+    // if button is Update then else part will be executed.
+    else {
+      objData.hobby = DummyHobby;
+      handleUpdateData(objData);
+      setIsSubmit(true);
+    }
+    handleReset();
+  },[allData, isSubmit, userData, DummyHobby])
+
+
+
+
+  // Function to get only unique id and check id is already exist or not.
+  const setId = (id)=> {
+    if (allData.length > 0) {
+      let getId = allData.find((user) =>
+        user.id == id
+      )
+      if (getId) {
+        id++;
+        return setId(id);
+      }
+      else {
+        return id;
+      }
+    }
+    else {
+      return id;
+    }
+  }
+
+
+
+  // On Change event for text inputs
+  const handleOnChange = useCallback((e)=> {
+    setUserData({ ...userData, [e.target.name]: e.target.value })
+  },[userData])
+
+
+
+  // Reset all the state.
+  const handleReset = ()=> {
+    stateRef.current.innerHTML = "<option value='none'>Select your state</option>";
+    cityRef.current.innerHTML = "<option value='none'>Select your city</option>";
+    setUserData({
+      fname: '',
+      lname: '',
+      email: '',
+      mobile: '',
+      gender: '',
+      hobby: [],
+      country: 'none',
+      state: 'none',
+      city: 'none',
+      isChecked: false
+    });
+    setHobbiesArray(usersHobby);
+    setGenderArray(genderArray);
+    resetRef.current.click();
+  }
+
+
+
+
+  // handle delete function
+
+  const handleDelete = useCallback((id)=> {
+    // let tempData = allData.filter((data) => {
+    //   return data.id !== id;
+    // })
+
+    let tempData = JSON.parse(localStorage.getItem('data')).map((data)=> data);
+
+    let index = tempData.findIndex((user) => {
+      return user.id == id;
+    })
+
+    tempData.splice(index, 1);
+    localStorage.setItem('data',JSON.stringify(tempData));
+    setAllData(JSON.parse(localStorage.getItem('data')));
+
+    if (!isSubmit) {
+      setIsSubmit(true);
+      handleReset();
+    }
+  },[allData]);
+
+
+
+
+  // Function handle update
+  const handleUpdate = useCallback((id)=> {
+
+    // this.setState({ isSubmit: false })
+    setIsSubmit(false);
+    let recordToUpdate = allData.filter((data) => {
+      return data.id === id;
+    })[0]
+
+    // Checked radio buttons
+    let gettedGender = recordToUpdate.gender
+
+    let newGender = genderArray.map((gender) => {
+      return gender.value === gettedGender ? { ...gender, isChecked: true } : gender;
+    })
+    setGenderArray(newGender);
+
+    // Checked checkboxes
+    let gettedHobby = recordToUpdate.hobby;
+
+    let newArr = usersHobby.map((hobby) => {
+      return gettedHobby.includes(hobby.value) ? { ...hobby, isChecked: true } : hobby;
+    })
+
+    setHobbiesArray(newArr);
+
+    let arr = [];
+    hobbiesArray.map((hobby) => {
+      if (hobby.isChecked) {
+        arr.push(hobby.value);
+      }
+    })
+
+
+
+
+    // Select the drop down list
+    let country = recordToUpdate.country
+    let state = recordToUpdate.state
+    let city = recordToUpdate.city    
+
+    handleCountryChange(country)
+    handleStateChange(state)
+
+    let retrievedState = {
+      fname: recordToUpdate.fname,
+      lname: recordToUpdate.lname,
+      mobile: recordToUpdate.mobile,
+      email: recordToUpdate.email,
+      gender: gettedGender,
+      country: country,
+      state: state,
+      city: city
+    }
+
+    setUserData(retrievedState);
+    setIdToUpdate(id);
+  },[allData])
+
+
+
+
+  // Update user data based on given by user.
+  const handleUpdateData = useCallback((data)=> {
+    let tempData = JSON.parse(localStorage.getItem('data'));
+    let index = tempData.findIndex((user) => user.id == idToUpdate);
+    let obj = tempData.map((user) => {
+      return user.id == idToUpdate ?
+        {
+          ...user,
+          fname: data.fname,
+          lname: data.lname,
+          mobile: data.mobile,
+          email: data.email,
+          gender: data.gender,
+          hobby: data.hobby,
+          country: data.country,
+          state: data.state,
+          city: data.city
+        } :
+        undefined;
+    }).find((user) => user !== undefined)
+    tempData.splice(index, 1, obj);
+    
+    localStorage.setItem('data',JSON.stringify(tempData));
+    setAllData(JSON.parse(localStorage.getItem('data')));
+  },[userData, DummyHobby, allData]);
+
+
+
+  // Check all functionality
+  const checkAll = useCallback((e)=> {
+    let { name, checked } = e.target;
+    let localData = JSON.parse(localStorage.getItem('data'));
+    if (name === "checkAll") {
+      let tempData = localData.map((user) => { return { ...user, isChecked: checked } }
+      )
+      localStorage.setItem('data', JSON.stringify(tempData))
+      setAllData(JSON.parse(localStorage.getItem('data')));
+    }
+    else {
+      let tempData = localData.map((user) =>
+        user.id == name ? { ...user, isChecked: checked } : user
+      )
+      localStorage.setItem('data', JSON.stringify(tempData))
+      setAllData(JSON.parse(localStorage.getItem('data')));
+    }
+  },[allData])
+
+
+  // Delete all
+  const handleDeleteAll = useCallback(()=> {
+    // let tempData = allData.filter((user) => user.isChecked === false)
+    let tempData = JSON.parse(localStorage.getItem('data')).map((data)=> data);
+    tempData.filter((user)=>{
+      return user.isChecked === true;
+    }).map((userMain) => {
+      let index = tempData.findIndex((user)=>{
+        return user.id === userMain.id;
+      })
+      tempData.splice(index,1);
+    })
+    
+    localStorage.setItem('data', JSON.stringify(tempData));
+    setAllData(JSON.parse(localStorage.getItem('data')));
+
+    if (!isSubmit) {
+      setIsSubmit(true);
+      handleReset();
+    }
+  },[allData]);
+
+
+
+  return (
+    <>
+      <div className="container form mt-4">
+      <h1 className="text-center">CRUD - ReactJs</h1>
+        <form action="" className="row" onSubmit={handleSubmit}>
+          <div className="col-md-6">
+            <label htmlFor="inputFname" className="form-label">First Name</label>
+            <input type="text" value={userData.fname} className="form-control" name="fname" onChange={handleOnChange} />
+          </div>
+          <div className="col-md-6">
+            <label htmlFor="inputLname" className="form-label">Last Name</label>
+            <input type="text" value={userData.lname} className="form-control" name="lname" onChange={handleOnChange} />
+          </div>
+          <div className="col-md-6">
+            <label htmlFor="inputEmail" className="form-label">Email</label>
+            <input type="email" value={userData.email} className="form-control" name="email" onChange={handleOnChange} />
+          </div>
+          <div className="col-md-6">
+            <label htmlFor="inputMobile" className="form-label">Mobile Number</label>
+            <input type="text" value={userData.mobile} className="form-control" name="mobile" onChange={handleOnChange} />
+          </div>
+          <div className="my-4 col-md-12">
+            <label htmlFor="">Select Gender : </label>
+            {
+              genderArr.map((gender, i) => {
+                return (
+                  <label key={i}>
+                    <input type="radio"
+                      name="gender"
+                      checked={gender.isChecked}
+                      value={gender.value}
+                      onChange={handleGenderChange} />
+                    {gender.value}
+                  </label>
+                )
+              })
+            }
+          </div>
+          <div className="col-md-12">
+            <label htmlFor="">Select your hobby</label>
+            {
+              hobbiesArray.map((elem) => {
+                return (
+                  <div key={elem.id}>
+                    <input className="form-check-input"
+                      checked={elem.isChecked}
+                      type="checkbox"
+                      value={elem.value}
+                      id={elem.elemId}
+                      onChange={handleHobbyChange} />
+                    <label className="form-check-label" htmlFor={elem.elemId}>
+                      {elem.value}
+                    </label>
+                  </div >
+                )
+              })
+            }
+          </div>
+          <div className="col-md-4 mt-4">
+            <select className="form-select" value={userData.country} ref={countryRef} onChange={(e) => { handleCountryChange(e.target.value) }}>
+              <option value="none">Select your country</option>
+            </select>
+          </div>
+          <div className="col-md-4 mt-4">
+            <select className="form-select" value={userData.state} ref={stateRef} id="" onChange={(e) => { handleStateChange(e.target.value) }}>
+              <option value="none">Select your state</option>
+            </select>
+          </div>
+          <div className="col-md-4 mt-4">
+            <select className="form-select" value={userData.city} id="" ref={cityRef} onChange={handleCityChange}>
+              <option value="none">Select your city</option>
+            </select>
+          </div>
+          <input className="btn btn-primary col-4 my-2 mx-2" type="submit" value={isSubmit ? 'Submit' : 'Update'} />
+          <input className="btn btn-primary col-4 my-2 mx-2" ref={resetRef} type="reset" value="Reset" onClick={handleReset} />
+        </form>
+        <button className="btn btn-danger col-md-2" disabled={allData.some((data)=> data.isChecked === true) ? false : true} onClick={handleDeleteAll}>Delete All</button>
+      </div>
+    </>
+  )
+}
+
+export default Crud
